@@ -28,6 +28,7 @@ import javax.swing.JTextField;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import org.golde.auncher.UsernameFieldHandler.OnTypedCallback;
 import org.to2mbn.jmccc.auth.OfflineAuthenticator;
 import org.to2mbn.jmccc.launch.LaunchException;
 import org.to2mbn.jmccc.launch.Launcher;
@@ -58,7 +59,7 @@ public class UI extends JFrame {
 	
 	private static final String MC_DIR = "minecraft";
 	private static final String MC_VERSION = "1.12.2";
-	private static final ServerInfo IP_TO_JOIN_AUTOMATICALLY = new ServerInfo("localhost");
+	private static final ServerInfo IP_TO_JOIN_AUTOMATICALLY = new ServerInfo("web.golde.org", 3050);
 	private static final int RAM = 4096;
 
 	private static final int AOFTD_MC = 1327;
@@ -79,33 +80,31 @@ public class UI extends JFrame {
 	
 	boolean hasDownloadedMinecraft = false;
 	boolean hasDownloadCustomFiles = false;
+	
+	JButton buttonLaunchMinecraft2;
+	JButton btnLaunchMinecraft;
 
 	public UI() throws IOException {
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setTitle("Puzzle Safari 2020 Launcher");
+		setTitle("The Grid");
 		getContentPane().setLayout(null);
 
 		usernameField = new JTextField();
 		usernameField.setBounds(117, 309, 218, 22);
-		usernameField.setDocument(new UsernameFieldHandler());
+		usernameField.setDocument(new UsernameFieldHandler(new OnTypedCallback() {
+			
+			@Override
+			public void onTyped(int length) {
+				setButtonsEnabled(length >= 3);
+			}
+		}));
 		getContentPane().add(usernameField);
 		usernameField.setColumns(10);
 
 		JLabel lblUsername = new JLabel("Team Name:");
 		lblUsername.setBounds(12, 312, 97, 16);
 		getContentPane().add(lblUsername);
-
-		JButton btnLaunchMinecraft = new JButton("Launch");
-		btnLaunchMinecraft.setBounds(93, 371, 152, 25);
-		btnLaunchMinecraft.addActionListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				tryLaunchGame();
-			}
-		});
-		getContentPane().add(btnLaunchMinecraft);
 
 		BufferedImage wPic = ImageIO.read(this.getClass().getResource("SafariLabsIconBOOM.png"));
 		JLabel image = new JLabel(new ImageIcon(wPic));
@@ -120,6 +119,30 @@ public class UI extends JFrame {
 		progressBar = new JProgressBar(0, AMOUNT_OF_FILES_TO_DOWNLOAD);
 		progressBar.setBounds(117, 344, 218, 14);
 		getContentPane().add(progressBar);
+		
+		btnLaunchMinecraft = new JButton("Take the Ecru Pill");
+		btnLaunchMinecraft.setEnabled(false);
+		btnLaunchMinecraft.setBounds(22, 371, 152, 25);
+		btnLaunchMinecraft.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				tryLaunchGame();
+			}
+		});
+		getContentPane().add(btnLaunchMinecraft);
+		
+		buttonLaunchMinecraft2 = new JButton("Take the Beige Pill");
+		buttonLaunchMinecraft2.setEnabled(false);
+		buttonLaunchMinecraft2.setBounds(183, 371, 152, 25);
+		buttonLaunchMinecraft2.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				tryLaunchGame();
+			}
+		});
+		getContentPane().add(buttonLaunchMinecraft2);
 
 		this.setIconImage(wPic);
 
@@ -132,7 +155,15 @@ public class UI extends JFrame {
 		
 	}
 	
+	private void setButtonsEnabled(boolean enabled) {
+		btnLaunchMinecraft.setEnabled(enabled);
+		buttonLaunchMinecraft2.setEnabled(enabled);
+	}
+	
 	private void tryLaunchGame() {
+		
+		setButtonsEnabled(false);
+		
 		if(!hasDownloadedMinecraft) {
 			downloadMinecraftMinecraft();
 		}
@@ -214,7 +245,7 @@ public class UI extends JFrame {
 
 	private void launchMinecraft() throws LaunchException, IOException {
 		MinecraftDirectory dir = new MinecraftDirectory(MC_DIR);
-		Launcher launcher = LauncherBuilder.buildDefault();
+		Launcher launcher = LauncherBuilder.create().printDebugCommandline(true).build();
 
 		LaunchOption launchOption = new LaunchOption(MC_VERSION, new OfflineAuthenticator(usernameField.getText()), dir);
 		launchOption.setMaxMemory(RAM);
@@ -234,6 +265,7 @@ public class UI extends JFrame {
 			@Override
 			public void onExit(int code) {
 				print("Game > Exited: " + code);
+				setButtonsEnabled(true);
 			}
 
 			@Override
@@ -352,9 +384,9 @@ public class UI extends JFrame {
 
 	void error(String msg, Throwable e) {
 		System.err.println(msg);
-		e.printStackTrace();
 		writer.append("[ERROR] " + msg + "\n");
 		if(e != null) {
+			e.printStackTrace();
 			e.printStackTrace(writer);
 		}
 
